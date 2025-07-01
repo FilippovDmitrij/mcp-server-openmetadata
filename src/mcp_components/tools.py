@@ -4,133 +4,202 @@ from mcp.types import TextContent, Tool
 
 from src.openmetadata import OpenMetadataClient
 
-LIST_TABLES_TOOL = Tool(
-    name="list_tables",
-    description="List tables from OpenMetadata",
+# Tool definitions
+SEARCH_METADATA_TOOL = Tool(
+    name="search_metadata",
+    description="Search metadata entities with optional filters",
     inputSchema={
         "type": "object",
         "properties": {
-            "limit": {"type": "integer", "description": "Maximum number of tables to return", "default": 10},
-            "offset": {"type": "integer", "description": "Number of tables to skip", "default": 0},
-        },
-    },
-)
-
-GET_TABLE_TOOL = Tool(
-    name="get_table",
-    description="Get details of a specific table by ID",
-    inputSchema={
-        "type": "object",
-        "properties": {
-            "table_id": {"type": "string", "description": "ID of the table to retrieve", "format": "uuid"},
-            "fields": {
+            "query": {
                 "type": "string",
-                "description": "Fields to include in the response",
-                "example": "name,description,columns,tags,href",
+                "description": "Search query string",
+                "default": "*",
+            },
+            "entity_type": {
+                "type": "string",
+                "description": "Entity type to search (optional)",
+            },
+            "limit": {
+                "type": "integer",
+                "description": "Maximum number of results",
+                "default": 10,
+            },
+            "include_deleted": {
+                "type": "boolean",
+                "description": "Whether to include deleted entities",
+                "default": False,
             },
         },
-        "required": ["table_id"],
     },
 )
 
-GET_TABLE_BY_NAME_TOOL = Tool(
-    name="get_table_by_name",
-    description="Get details of a specific table by fully qualified name",
+GET_ENTITY_DETAILS_TOOL = Tool(
+    name="get_entity_details",
+    description="Get details of a specific entity by fully qualified name",
     inputSchema={
         "type": "object",
         "properties": {
-            "fqn": {"type": "string", "description": "Fully qualified name of the table"},
+            "entity_type": {
+                "type": "string",
+                "description": "Type of entity (e.g. table, dashboard)",
+            },
+            "fqn": {
+                "type": "string",
+                "description": "Fully qualified name of the entity",
+            },
             "fields": {
                 "type": "string",
-                "description": "Fields to include in the response",
-                "example": "name,description,columns,tags,href",
+                "description": "Comma separated list of fields to include",
+                "default": "*",
             },
         },
-        "required": ["fqn"],
+        "required": ["entity_type", "fqn"],
     },
 )
 
-CREATE_TABLE_TOOL = Tool(
-    name="create_table",
-    description="Create a new table",
+CREATE_GLOSSARY_TOOL = Tool(
+    name="create_glossary",
+    description="Create a new glossary",
     inputSchema={
         "type": "object",
         "properties": {
-            "table_data": {"type": "object", "description": "Table data including name, description, columns, etc."},
+            "name": {"type": "string", "description": "Glossary name"},
+            "description": {"type": "string", "description": "Glossary description"},
+            "owners": {
+                "type": "array",
+                "items": {"type": "string"},
+                "description": "List of owner usernames",
+            },
+            "reviewers": {
+                "type": "array",
+                "items": {"type": "string"},
+                "description": "List of reviewer usernames",
+            },
         },
-        "required": ["table_data"],
+        "required": ["name", "description"],
     },
 )
 
-UPDATE_TABLE_TOOL = Tool(
-    name="update_table",
-    description="Update an existing table",
+CREATE_GLOSSARY_TERM_TOOL = Tool(
+    name="create_glossary_term",
+    description="Create a new glossary term",
     inputSchema={
         "type": "object",
         "properties": {
-            "table_id": {"type": "string", "description": "ID of the table to update", "format": "uuid"},
-            "table_data": {"type": "object", "description": "Updated table data"},
+            "name": {"type": "string", "description": "Term name"},
+            "glossary": {"type": "string", "description": "Parent glossary name"},
+            "description": {"type": "string", "description": "Term description"},
+            "parent_term": {"type": "string", "description": "Parent term name"},
+            "owners": {
+                "type": "array",
+                "items": {"type": "string"},
+                "description": "List of owner usernames",
+            },
         },
-        "required": ["table_id", "table_data"],
+        "required": ["name", "glossary", "description"],
     },
 )
 
-DELETE_TABLE_TOOL = Tool(
-    name="delete_table",
-    description="Delete a table",
+PATCH_ENTITY_TOOL = Tool(
+    name="patch_entity",
+    description="Update an entity via JSON Patch operations",
     inputSchema={
         "type": "object",
         "properties": {
-            "table_id": {"type": "string", "description": "ID of the table to delete", "format": "uuid"},
-            "hard_delete": {"type": "boolean", "description": "Whether to perform a hard delete", "default": False},
-            "recursive": {"type": "boolean", "description": "Whether to recursively delete children", "default": False},
+            "entity_type": {"type": "string", "description": "Entity type"},
+            "fqn": {"type": "string", "description": "Fully qualified name"},
+            "patch_operations": {
+                "type": "array",
+                "items": {"type": "object"},
+                "description": "JSON Patch operation list",
+            },
         },
-        "required": ["table_id"],
+        "required": ["entity_type", "fqn", "patch_operations"],
+    },
+)
+
+GET_ENTITY_LINEAGE_TOOL = Tool(
+    name="get_entity_lineage",
+    description="Get lineage information for an entity",
+    inputSchema={
+        "type": "object",
+        "properties": {
+            "entity_type": {"type": "string", "description": "Entity type"},
+            "fqn": {"type": "string", "description": "Fully qualified name"},
+            "upstream_depth": {
+                "type": "integer",
+                "description": "Upstream lineage depth",
+                "default": 1,
+            },
+            "downstream_depth": {
+                "type": "integer",
+                "description": "Downstream lineage depth",
+                "default": 1,
+            },
+        },
+        "required": ["entity_type", "fqn"],
     },
 )
 
 
 def list_all_tools() -> List[Tool]:
     return [
-        LIST_TABLES_TOOL,
-        GET_TABLE_TOOL,
-        GET_TABLE_BY_NAME_TOOL,
-        CREATE_TABLE_TOOL,
-        UPDATE_TABLE_TOOL,
-        DELETE_TABLE_TOOL,
+        SEARCH_METADATA_TOOL,
+        GET_ENTITY_DETAILS_TOOL,
+        CREATE_GLOSSARY_TOOL,
+        CREATE_GLOSSARY_TERM_TOOL,
+        PATCH_ENTITY_TOOL,
+        GET_ENTITY_LINEAGE_TOOL,
     ]
 
 
 def call_tool(name: str, arguments: Dict[str, Any], client: OpenMetadataClient) -> List[TextContent]:
-    if name == LIST_TABLES_TOOL.name:
-        limit = arguments.get("limit", 10)
-        offset = arguments.get("offset", 0)
-        results = client.list_tables(limit=limit, offset=offset)
+    if name == SEARCH_METADATA_TOOL.name:
+        results = client.search_metadata(
+            query=arguments.get("query", "*"),
+            entity_type=arguments.get("entity_type"),
+            limit=arguments.get("limit", 10),
+            include_deleted=arguments.get("include_deleted", False),
+        )
         return [TextContent(type="text", text=str(results))]
-    elif name == GET_TABLE_TOOL.name:
-        table_id = arguments["table_id"]
-        fields = arguments.get("fields")
-        results = client.get_table(table_id=table_id, fields=fields)
+    if name == GET_ENTITY_DETAILS_TOOL.name:
+        results = client.get_entity_details(
+            entity_type=arguments["entity_type"],
+            fqn=arguments["fqn"],
+            fields=arguments.get("fields", "*"),
+        )
         return [TextContent(type="text", text=str(results))]
-    elif name == GET_TABLE_BY_NAME_TOOL.name:
-        fqn = arguments["fqn"]
-        fields = arguments.get("fields")
-        results = client.get_table_by_name(fqn=fqn, fields=fields)
+    if name == CREATE_GLOSSARY_TOOL.name:
+        results = client.create_glossary(
+            name=arguments["name"],
+            description=arguments["description"],
+            owners=arguments.get("owners"),
+            reviewers=arguments.get("reviewers"),
+        )
         return [TextContent(type="text", text=str(results))]
-    elif name == CREATE_TABLE_TOOL.name:
-        table_data = arguments["table_data"]
-        results = client.create_table(table_data=table_data)
+    if name == CREATE_GLOSSARY_TERM_TOOL.name:
+        results = client.create_glossary_term(
+            name=arguments["name"],
+            glossary=arguments["glossary"],
+            description=arguments["description"],
+            parent_term=arguments.get("parent_term"),
+            owners=arguments.get("owners"),
+        )
         return [TextContent(type="text", text=str(results))]
-    elif name == UPDATE_TABLE_TOOL.name:
-        table_id = arguments["table_id"]
-        table_data = arguments["table_data"]
-        results = client.update_table(table_id=table_id, table_data=table_data)
+    if name == PATCH_ENTITY_TOOL.name:
+        results = client.patch_entity(
+            entity_type=arguments["entity_type"],
+            fqn=arguments["fqn"],
+            patch_data=arguments["patch_operations"],
+        )
         return [TextContent(type="text", text=str(results))]
-    elif name == DELETE_TABLE_TOOL.name:
-        table_id = arguments["table_id"]
-        hard_delete = arguments.get("hard_delete", False)
-        recursive = arguments.get("recursive", False)
-        client.delete_table(table_id=table_id, hard_delete=hard_delete, recursive=recursive)
-        return [TextContent(type="text", text=f"Table {table_id} deleted successfully")]
-    else:
-        raise ValueError(f"Unknown tool: {name}")
+    if name == GET_ENTITY_LINEAGE_TOOL.name:
+        results = client.get_entity_lineage(
+            entity_type=arguments["entity_type"],
+            fqn=arguments["fqn"],
+            upstream_depth=arguments.get("upstream_depth", 1),
+            downstream_depth=arguments.get("downstream_depth", 1),
+        )
+        return [TextContent(type="text", text=str(results))]
+    raise ValueError(f"Unknown tool: {name}")
