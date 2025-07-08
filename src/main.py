@@ -1,3 +1,5 @@
+#src/main.py
+
 from typing import Any, Dict, List
 
 import click
@@ -11,7 +13,7 @@ from src.openmetadata import OpenMetadataClient
 from src.server import get_server_runner
 
 DEFAULT_PORT = 8000
-DEFAULT_TRANSPORT = "stdio"
+DEFAULT_TRANSPORT = "sse"
 SERVER_NAME = "mcp-server-openmetadata"
 
 
@@ -33,9 +35,9 @@ def main(port: int, transport: str) -> int:
     # Create MCP server
     app = Server(SERVER_NAME)
 
-    @app.list_resources()
+    """@app.list_resources()
     async def handle_list_resources() -> List[Resource]:
-        return list_all_resources()
+        return list_all_resources()"""
 
     @app.list_tools()
     async def handle_list_tools() -> List[Tool]:
